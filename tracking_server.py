@@ -1,6 +1,7 @@
 from flask import Flask, request, Response, g, jsonify
 import sqlite3
 from datetime import datetime
+from urllib.parse import unquote
 
 app = Flask(__name__)
 DB_FILE = "/tmp/opens.db"  # Render autorise seulement /tmp pour écrire
@@ -28,7 +29,6 @@ def close_connection(exception):
     if db:
         db.close()
 
-# --- Page d'accueil ---
 @app.route("/")
 def home():
     return "Serveur de tracking opérationnel ✅"
@@ -36,6 +36,9 @@ def home():
 # --- Pixel de tracking ---
 @app.route("/open/<path:email>")
 def track_open(email):
+    # Décoder l'email encodé
+    email = unquote(email)
+
     db = get_db()
     db.execute(
         "INSERT INTO opens (email, date, ip, user_agent) VALUES (?, ?, ?, ?)",
@@ -56,7 +59,6 @@ def track_open(email):
 
     return Response(pixel, mimetype="image/png")
 
-# --- Voir toutes les ouvertures ---
 @app.route("/opens")
 def opens():
     db = get_db()
