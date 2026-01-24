@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 
 app = Flask(__name__)
-DB_FILE = "opens.db"
+DB_FILE = "/tmp/opens.db"  # Render autorise seulement /tmp pour écrire
 
 # --- Connexion à la base SQLite ---
 def get_db():
@@ -34,14 +34,14 @@ def home():
     return "Serveur de tracking opérationnel ✅"
 
 # --- Pixel de tracking ---
-@app.route("/open/<email>")
+@app.route("/open/<path:email>")
 def track_open(email):
     db = get_db()
     db.execute(
         "INSERT INTO opens (email, date, ip, user_agent) VALUES (?, ?, ?, ?)",
         (
             email,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
             request.remote_addr,
             request.headers.get("User-Agent", "")
         )
