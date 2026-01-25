@@ -151,9 +151,9 @@ def download_report():
     df = pd.DataFrame(rows, columns=["Email", "Date", "IP", "User-Agent"])
 
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+    # Utilisation de openpyxl pour compatibilité Render / Windows Server
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Ouvertures")
-        writer.save()
     output.seek(0)
 
     return send_file(
