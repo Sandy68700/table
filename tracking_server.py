@@ -1,3 +1,15 @@
+# tracking_server.py
+
+import os
+from flask import Flask, request, send_file, render_template_string
+
+# Nom du fichier de contacts
+CONTACTS_FILE = "contacts.xlsx"
+
+# --- Création de l'application Flask ---
+app = Flask(__name__)
+
+# --- Route principale pour upload / affichage ---
 @app.route("/", methods=["GET", "POST"])
 def home():
     message = ""
@@ -32,13 +44,11 @@ def home():
     {'<a href="/download">⬇ Télécharger contacts.xlsx</a><br><br>' if file_exists else ''}
 
     <a href="/report">Voir le rapport des ouvertures</a><br>
-    <a href="/opens">Voir JSON brut des ouvertures</a>
+    <a href="/opens">Voir JSON brut des ouvertures</a><br>
     """
     return render_template_string(html)
 
 # --- Route pour télécharger contacts.xlsx ---
-from flask import send_file
-
 @app.route("/download")
 def download_contacts():
     if os.path.exists(CONTACTS_FILE):
