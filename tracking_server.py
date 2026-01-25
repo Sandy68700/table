@@ -2,9 +2,12 @@ from flask import Flask, request, Response, g, jsonify
 import sqlite3
 from datetime import datetime
 from urllib.parse import unquote
+import os
+import pandas as pd
 
 app = Flask(__name__)
 DB_FILE = "/tmp/opens.db"  # Render autorise seulement /tmp pour écrire
+CONTACTS_FILE = "/tmp/contacts.xlsx"  # fichier Excel uploadé avec tous les emails
 
 # --- Connexion à la base SQLite ---
 def get_db():
@@ -33,6 +36,19 @@ def close_connection(exception):
 @app.route("/")
 def home():
     return "Serveur de tracking opérationnel ✅"
+
+# --- Upload du fichier contacts.xlsx ---
+@app.route("/upload_contacts", methods=["POST"])
+def upload_contacts():
+    if "file" not in request.files:
+        return "Aucun fichier envoyé", 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return "Fichier vide", 400
+
+    file.save(CONTACTS_FILE)
+    return "Fichier contacts.xlsx enregistré ✅", 200
 
 # --- Pixel de tracking ---
 @app.route("/open/<path:email>")
@@ -69,10 +85,12 @@ def opens():
     result = [{"email": r[0], "date": r[1], "ip": r[2], "user_agent": r[3]} for r in rows]
     return jsonify(result)
 
-# --- Rapport HTML avec taux d'ouverture ---
+# --- Rapport HTML avec taux d'ouverture automatique ---
 @app.route("/report")
 def report():
     db = get_db()
+
+    # Récupération des ouvertures par email
     rows = db.execute("""
         SELECT email, COUNT(*) as ouvertures, MAX(date) as derniere_ouverture
         FROM opens
@@ -80,7 +98,7 @@ def report():
         ORDER BY derniere_ouverture DESC
     """).fetchall()
 
-    # Création du tableau HTML
+    # Tableau HTML
     html = "<h1>📊 Rapport d'ouvertures</h1>"
     html += "<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>"
     html += "<tr><th>Email</th><th>Nombre d'ouvertures</th><th>Dernière ouverture (UTC)</th></tr>"
@@ -90,10 +108,21 @@ def report():
 
     html += "</table><br>"
 
-    # 🔹 Taux d'ouverture (modifie ce nombre selon tes envois)
-    total_emails_envoyes = 50  # <-- à adapter pour chaque campagne
-    taux_ouverture = (len(rows) / total_emails_envoyes) * 100 if total_emails_envoyes > 0 else 0
-    html += f"<p><strong>Taux d'ouverture :</strong> {taux_ouverture:.2f}%</p>"
+    # 🔹 Calcul du taux d'ouverture automatiquement
+    emails_ouverts = len(rows)
+
+    # Nombre total d'emails envoyés depuis contacts.xlsx
+    if os.path.exists(CONTACTS_FILE):
+        try:
+            df = pd.read_excel(CONTACTS_FILE)
+            total_emails_envoyes = df['Email'].nunique()
+        except Exception:
+            total_emails_envoyes = emails_ouverts
+    else:
+        total_emails_envoyes = emails_ouverts
+
+    taux_ouverture = (emails_ouverts / total_emails_envoyes) * 100 if total_emails_envoyes > 0 else 0
+    html += f"<p><strong>Taux d'ouverture :</strong> {taux_ouverture:.2f}% ({emails_ouverts}/{total_emails_envoyes})</p>"
 
     return html
 
