@@ -1,2 +1,17 @@
 Flask
 waitress
+# Pour la manipulation de données
+pandas>=1.5.3
+numpy>=1.24.0
+
+# Pour le serveur web
+flask>=2.3.2
+
+# Pour les requêtes HTTP
+requests>=2.31.0
+
+# Pour le traitement JSON, si besoin
+ujson>=5.8.0
+
+# Pour gérer les environnements virtuels (optionnel)
+python-dotenv>=1.0.0
