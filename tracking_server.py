@@ -1,4 +1,4 @@
-from flask import Flask, request, Response, g, jsonify, render_template_string, redirect, url_for
+from flask import Flask, request, Response, g, jsonify, render_template_string
 import sqlite3
 from datetime import datetime
 from urllib.parse import unquote
@@ -32,7 +32,7 @@ def close_connection(exception):
     if db:
         db.close()
 
-# --- Page d'accueil avec interface ---
+# --- Page d'accueil avec interface de upload ---
 @app.route("/", methods=["GET", "POST"])
 def home():
     message = ""
@@ -56,8 +56,7 @@ def home():
         <button type="submit">Uploader</button>
     </form>
     <br>
-    <a href="/report">Voir le rapport des ouvertures</a>
-    <br>
+    <a href="/report">Voir le rapport des ouvertures</a><br>
     <a href="/opens">Voir JSON brut des ouvertures</a>
     """
     return render_template_string(html)
@@ -97,7 +96,7 @@ def opens():
     result = [{"email": r[0], "date": r[1], "ip": r[2], "user_agent": r[3]} for r in rows]
     return jsonify(result)
 
-# --- Rapport HTML avec taux d'ouverture automatique ---
+# --- Rapport HTML avec taux d'ouverture ---
 @app.route("/report")
 def report():
     db = get_db()
@@ -110,7 +109,6 @@ def report():
         ORDER BY derniere_ouverture DESC
     """).fetchall()
 
-    # Tableau HTML
     html = "<h1>📊 Rapport d'ouvertures</h1>"
     html += "<table border='1' cellpadding='5' cellspacing='0' style='border-collapse:collapse;'>"
     html += "<tr><th>Email</th><th>Nombre d'ouvertures</th><th>Dernière ouverture (UTC)</th></tr>"
@@ -120,9 +118,8 @@ def report():
 
     html += "</table><br>"
 
-    # 🔹 Calcul du taux d'ouverture automatiquement
+    # Calcul du taux d'ouverture
     emails_ouverts = len(rows)
-
     if os.path.exists(CONTACTS_FILE):
         try:
             df = pd.read_excel(CONTACTS_FILE)
