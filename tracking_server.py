@@ -1,3 +1,4 @@
+# tracking_server.py
 from flask import Flask, request, Response, g, jsonify, render_template_string, send_file
 import sqlite3
 from datetime import datetime
@@ -9,10 +10,11 @@ import pandas as pd
 app = Flask(__name__)
 
 # --- Fichiers et base ---
-DB_FILE = "/tmp/opens.db"  # Render autorise seulement /tmp pour écrire
-CONTACTS_FILE = "/tmp/contacts.xlsx"
+DATA_DIR = "/tmp"  # Render permet seulement /tmp
+DB_FILE = os.path.join(DATA_DIR, "opens.db")
+CONTACTS_FILE = os.path.join(DATA_DIR, "contacts.xlsx")
 
-# --- Connexion à la base SQLite ---
+# --- Connexion à SQLite ---
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
@@ -56,22 +58,14 @@ def home():
     html = f"""
     <h1>📊 Serveur de Tracking</h1>
     <p>{message}</p>
-
-    <!-- Formulaire upload -->
     <form method="post" enctype="multipart/form-data">
         <label>Uploader votre fichier contacts.xlsx :</label>
         <input type="file" name="file" accept=".xlsx" required>
         <button type="submit">Uploader</button>
     </form>
-
     <br>
-
-    <!-- Bouton téléchargement contacts.xlsx -->
     {'<a href="/download">⬇ Télécharger contacts.xlsx</a><br><br>' if file_exists else ''}
-
-    <!-- Bouton téléchargement rapport -->
     <a href="/download_report">⬇ Télécharger le rapport des ouvertures (Excel)</a><br><br>
-
     <a href="/report">Voir le rapport des ouvertures (HTML)</a><br>
     <a href="/opens">Voir JSON brut des ouvertures</a>
     """
@@ -139,7 +133,7 @@ def download_contacts():
     if os.path.exists(CONTACTS_FILE):
         return send_file(CONTACTS_FILE, as_attachment=True)
     else:
-        return "⚠ Aucun fichier contacts.xlsx disponible pour le téléchargement.", 404
+        return "⚠ Aucun fichier contacts.xlsx disponible.", 404
 
 # --- Télécharger rapport Excel ---
 @app.route("/download_report")
@@ -151,7 +145,6 @@ def download_report():
     df = pd.DataFrame(rows, columns=["Email", "Date", "IP", "User-Agent"])
 
     output = io.BytesIO()
-    # Utilisation de openpyxl pour compatibilité Render / Windows Server
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Ouvertures")
     output.seek(0)
