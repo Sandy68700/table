@@ -3,6 +3,7 @@ waitress
 # Pour la manipulation de données
 pandas>=1.5.3
 numpy>=1.24.0
+openpyxl>=3.1.0  # <-- Ajouté pour export Excel
 
 # Pour le serveur web
 flask>=2.3.2
