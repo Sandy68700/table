@@ -1,4 +1,4 @@
-from flask import Flask, request, Response, g, jsonify
+from flask import Flask, request, Response, g, jsonify, render_template_string, redirect, url_for
 import sqlite3
 from datetime import datetime
 from urllib.parse import unquote
@@ -32,23 +32,35 @@ def close_connection(exception):
     if db:
         db.close()
 
-# --- Page d'accueil ---
-@app.route("/")
+# --- Page d'accueil avec interface ---
+@app.route("/", methods=["GET", "POST"])
 def home():
-    return "Serveur de tracking opérationnel ✅"
+    message = ""
+    if request.method == "POST":
+        if "file" in request.files:
+            file = request.files["file"]
+            if file.filename != "":
+                file.save(CONTACTS_FILE)
+                message = "✅ Fichier contacts.xlsx enregistré avec succès !"
+            else:
+                message = "⚠ Aucun fichier sélectionné."
+        else:
+            message = "⚠ Clé 'file' manquante."
 
-# --- Upload du fichier contacts.xlsx ---
-@app.route("/upload_contacts", methods=["POST"])
-def upload_contacts():
-    if "file" not in request.files:
-        return "Aucun fichier envoyé", 400
-
-    file = request.files["file"]
-    if file.filename == "":
-        return "Fichier vide", 400
-
-    file.save(CONTACTS_FILE)
-    return "Fichier contacts.xlsx enregistré ✅", 200
+    html = f"""
+    <h1>📊 Serveur de Tracking</h1>
+    <p>{message}</p>
+    <form method="post" enctype="multipart/form-data">
+        <label>Uploader votre fichier contacts.xlsx :</label>
+        <input type="file" name="file" accept=".xlsx" required>
+        <button type="submit">Uploader</button>
+    </form>
+    <br>
+    <a href="/report">Voir le rapport des ouvertures</a>
+    <br>
+    <a href="/opens">Voir JSON brut des ouvertures</a>
+    """
+    return render_template_string(html)
 
 # --- Pixel de tracking ---
 @app.route("/open/<path:email>")
@@ -111,7 +123,6 @@ def report():
     # 🔹 Calcul du taux d'ouverture automatiquement
     emails_ouverts = len(rows)
 
-    # Nombre total d'emails envoyés depuis contacts.xlsx
     if os.path.exists(CONTACTS_FILE):
         try:
             df = pd.read_excel(CONTACTS_FILE)
@@ -124,7 +135,8 @@ def report():
     taux_ouverture = (emails_ouverts / total_emails_envoyes) * 100 if total_emails_envoyes > 0 else 0
     html += f"<p><strong>Taux d'ouverture :</strong> {taux_ouverture:.2f}% ({emails_ouverts}/{total_emails_envoyes})</p>"
 
-    return html
+    html += '<br><a href="/">⬅ Retour à l’accueil</a>'
+    return render_template_string(html)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
