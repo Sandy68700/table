@@ -1,18 +1,18 @@
-Flask
-waitress
-# Pour la manipulation de données
+# Serveur web
+Flask>=2.3.2
+waitress>=2.1.2  # pour déployer sur Render ou Windows production
+
+# Manipulation de données
 pandas>=1.5.3
 numpy>=1.24.0
-openpyxl>=3.1.0  # <-- Ajouté pour export Excel
+openpyxl>=3.1.0  # nécessaire pour exporter en Excel
 
-# Pour le serveur web
-flask>=2.3.2
+# Envoi d'emails et gestion MIME
+email-validator>=1.3.1  # optionnel, si tu veux valider les emails avant envoi
 
-# Pour les requêtes HTTP
+# Requêtes HTTP et JSON
 requests>=2.31.0
-
-# Pour le traitement JSON, si besoin
 ujson>=5.8.0
 
-# Pour gérer les environnements virtuels (optionnel)
+# Gestion des environnements
 python-dotenv>=1.0.0
